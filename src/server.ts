@@ -25,8 +25,27 @@ import { createEngine } from 'angular2-express-engine';
 // App
 import { MainModule } from './app/app.node.module';
 
+//consul
+import * as consul from 'consul';
+const c = new consul();
+
+c.agent.service.register('assimilator', err => {
+  console.log(err);
+});
+
+c.kv.get('application/config/data', (err, results) => {
+  console.log(err, results);
+});
+
+var kvWatch = c.watch({method: c.kv.get, options: {key: 'application/config/data'}});
+
+kvWatch.on('change', (data, res) => console.log(data));
+kvWatch.on('error', err => console.log(err));
+
+
 // enable prod for faster renders
 enableProdMode();
+
 
 const app = express();
 const ROOT = path.join(path.resolve(__dirname, '..'));
@@ -88,3 +107,18 @@ app.get('*', function(req, res) {
 let server = app.listen(app.get('port'), () => {
   console.log(`Listening on: http://localhost:${server.address().port}`);
 });
+
+
+// Playing nicely with Consul
+process.on('SIGTERM', () => {
+  console.log('SIGTERM recieved: Deregistering service from consul.');
+  c.agent.service.deregister('assimilator', err => {
+    console.log('Service Deregistered: attempting shut down.');
+    server.close( () => {
+        console.log('Server succesfully shut down.');
+        process.exit(0);
+      });
+  });
+});
+
+// End Playing nicely with Consul

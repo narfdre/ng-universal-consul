@@ -19,7 +19,8 @@
       "mime",
       "node",
       "serve-static",
-      "hammerjs"
+      "hammerjs",
+      "consul"
     ]
   },
   "exclude": [
